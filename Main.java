@@ -292,7 +292,7 @@ final class State {
 	// A mutable builder for an immutable State.
 	static class Builder {
 		private int version = 1;
-		private String bgimage;
+		private String bgimage = "";
 		private HashMap<String, Marker> markers = new HashMap<>();
 
 		public Builder() {
