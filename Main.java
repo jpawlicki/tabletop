@@ -3,12 +3,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 import javax.json.Json;
+import javax.json.JsonObjectBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -129,7 +131,7 @@ class StateServer {
 		if (keyPattern.matcher(path).matches()) {
 			// Handle state update.
 			State s = getState(path);
-			State nu = new State.Builder(s).setVersion(s.version + 1).setDebug(rand.nextLong()).build();
+			State nu = new State.Builder(s).setVersion(s.version + 1).build();
 			states.put(path, nu);
 			// Notify listeners.
 			for (HttpExchange e : clients.get(path)) {
@@ -220,35 +222,55 @@ class StateServer {
 
 final class State {
 	public final int version;
-	public final long debug;
+	public final String bgimage;
+	public final HashMap<String, Marker> markers;
 
 	public byte[] getBytes() {
+		JsonObjectBuilder markersBuilder = Json.createObjectBuilder();
+		for (Map.Entry<String, Marker> e : markers.entrySet()) {
+			Marker m = e.getValue();
+			markersBuilder.add(e.getKey(), Json.createObjectBuilder()
+					.add("posx", m.posx)
+					.add("posy", m.posy)
+					.add("shape", m.shape)
+					.add("color", m.color)
+					.add("size", m.size)
+					.add("rotation", m.rotation)
+					.add("label", m.label)
+					.build());
+		}
 		return Json.createObjectBuilder()
 				.add("version", version)
-				.add("debug", debug)
+				.add("markers", markersBuilder.build())
+				.add("bgimage", bgimage)
 				.build().toString().getBytes();
 	}
 
-	private State(int version, long debug) {
+	private State(int version, String bgimage, HashMap<String, Marker> markers) {
 		this.version = version;
-		this.debug = debug;
+		this.bgimage = bgimage;
+		this.markers = markers;
 	}
 
 	// A mutable builder for an immutable State.
 	static class Builder {
 		private int version = 1;
-		private long debug = 0;
+		private String bgimage;
+		private HashMap<String, Marker> markers = new HashMap<>();
 
 		public Builder() {
 		}
 
 		public Builder(State s) {
 			version = s.version;
-			debug = s.debug;
+			bgimage = s.bgimage;
+			for (Map.Entry<String, Marker> e : s.markers.entrySet()) {
+				markers.put(e.getKey(), e.getValue());
+			}
 		}
 
 		public State build() {
-			return new State(version, debug);
+			return new State(version, bgimage, markers);
 		}
 
 		public Builder setVersion(int version) {
@@ -256,8 +278,100 @@ final class State {
 			return this;
 		}
 
-		public Builder setDebug(long debug) {
-			this.debug = debug;
+		public Builder setBgImage(String bgimage) {
+			this.bgimage = bgimage;
+			return this;
+		}
+
+		public Builder updateMarker(String id, Marker m) {
+			markers.put(id, m);
+			return this;
+		}
+
+		public Builder deleteMarker(String id) {
+			markers.remove(id);
+			return this;
+		}
+	}
+}
+
+final class Marker {
+	public final int posx;
+	public final int posy;
+	public final int shape;
+	public final String color;
+	public final double size;
+	public final double rotation;
+	public final String label;
+
+	private Marker(int posx, int posy, int shape, String color, double size, double rotation, String label) {
+		this.posx = posx;
+		this.posy = posy;
+		this.shape = shape;
+		this.color = color;
+		this.size = size;
+		this.rotation = rotation;
+		this.label = label;
+	}
+
+	class Builder {
+		private int posx;
+		private int posy;
+		private int shape;
+		private String color;
+		private double size;
+		private double rotation;
+		private String label;
+
+		public Builder() {
+		}
+
+		public Builder(Marker m) {
+			posx = m.posx;
+			posy = m.posy;
+			shape = m.shape;
+			color = m.color;
+			size = m.size;
+			rotation = m.rotation;
+			label = m.label;
+		}
+
+		public Marker build() {
+			return new Marker(posx, posy, shape, color, size, rotation, label);
+		}
+
+		public Builder setPosx(int posx) {
+			this.posx = posx;
+			return this;
+		}
+
+		public Builder setPosy(int posy) {
+			this.posy = posy;
+			return this;
+		}
+
+		public Builder setShape(int shape) {
+			this.shape = shape;
+			return this;
+		}
+
+		public Builder setColor(String color) {
+			this.color = color;
+			return this;
+		}
+
+		public Builder setSize(double size) {
+			this.size = size;
+			return this;
+		}
+
+		public Builder setRotation(double rotation) {
+			this.rotation = rotation;
+			return this;
+		}
+
+		public Builder setLabel(String label) {
+			this.label = label;
 			return this;
 		}
 	}
