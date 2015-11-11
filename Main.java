@@ -1,6 +1,8 @@
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 import javax.json.Json;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -130,18 +133,53 @@ class StateServer {
 		String path = exchange.getRequestURI().getPath().substring("/update/".length());
 		if (keyPattern.matcher(path).matches()) {
 			// Handle state update.
-			State s = getState(path);
-			State nu = new State.Builder(s).setVersion(s.version + 1).build();
-			states.put(path, nu);
+			JsonObject data = Json.createReader(exchange.getRequestBody()).readObject();
+			switch (data.getString("type")) {
+				case "mpush":
+					updateMarker(path, data);
+					break;
+				case "mdel":
+					deleteMarker(path, data);
+					break;
+				case "bgimage":
+					setBgImage(path, data);
+					break;
+			}
+			serve200(exchange, "200 OK".getBytes(), "text/plain");
 			// Notify listeners.
+			byte[] b = states.get(path).getBytes();
 			for (HttpExchange e : clients.get(path)) {
-				serve200(e, nu.getBytes(), "application/json");
+				serve200(e, b, "application/json");
 			}
 			clients.remove(path);
-			serve200(exchange, new byte[0], "text/html");
 		} else {
 			serve404(exchange);
 		}
+	}
+
+	private void updateMarker(String path, JsonObject data) {
+		State s = getState(path);
+		states.put(path, new State.Builder(s)
+				.setVersion(s.version + 1)
+				.updateMarker(data.getString("id"), new Marker.Builder()
+						.setPosx(data.getInt("posx"))
+						.setPosy(data.getInt("posy"))
+						.setShape(data.getInt("shape"))
+						.setColor(data.getString("color"))
+						.setLabel(data.getString("label"))
+						.setRotation(data.getJsonNumber("rotation").doubleValue())
+						.setSize(data.getJsonNumber("size").doubleValue())
+						.build()).build());
+	}
+
+	private void deleteMarker(String path, JsonObject data) {
+		State s = getState(path);
+		states.put(path, new State.Builder(s).setVersion(s.version + 1).deleteMarker(data.getString("id")).build());
+	}
+
+	private void setBgImage(String path, JsonObject data) {
+		State s = getState(path);
+		states.put(path, new State.Builder(s).setVersion(s.version + 1).setBgImage(data.getString("bgimage")).build());
 	}
 
 	private synchronized void handleListen(HttpExchange exchange) {
@@ -149,7 +187,6 @@ class StateServer {
 		if (keyPattern.matcher(path).matches()) {
 			try {
 				int version = new Integer(exchange.getRequestURI().getQuery().substring("p=".length()));
-				System.out.println(version);
 				State s = getState(path);
 				if (s.version > version) {
 					serve200(exchange, s.getBytes(), "application/json");
@@ -314,7 +351,7 @@ final class Marker {
 		this.label = label;
 	}
 
-	class Builder {
+	static class Builder {
 		private int posx;
 		private int posy;
 		private int shape;
