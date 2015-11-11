@@ -1,7 +1,49 @@
 <html>
 	<head>
+		<script type="application/javascript">
+			/**
+			 * currentViewState is the 
+			 */
+			var currentViewState = {"version": 0};
+
+			function pushBgImage(img) {
+				push({
+						"type": "bgimage",
+						"bgimage": img,
+						});
+			}
+			function push(obj) {
+				var req = new XMLHttpRequest();
+				req.open("post", "/update/%%pagekey%%", true);
+				req.send(JSON.stringify(obj));
+			}
+			function poll() {
+				var req = new XMLHttpRequest();
+				req.open("get", "/listen/%%pagekey%%?p=" + currentViewState["version"], true);
+				req.onerror = function (e) {
+					console.error(req.statusText);
+					poll();
+				}
+				req.onload = function (e) {
+					if (req.readyState === 4) {
+						console.log(req.responseText);
+						updateState(JSON.parse(req.responseTest));
+						poll();
+					}
+				}
+				req.send(null);
+			}
+			function updateState(nu) {
+				// Maybe we want to keep both states and do some animation?
+				currentViewState = nu;
+				// repaint the canvas?
+			}
+			poll();
+		</script>
 	</head>
 	<body>
 		Hello world! %%pagekey%%
+		<input id="bgimage" type="text"/>
+		<input type="button" onclick="pushBgImage(document.getElementById('bgimage').value);"/>
 	</body>
 </html>
