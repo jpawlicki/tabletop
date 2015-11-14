@@ -11,7 +11,7 @@
 				req.open("get", "/listen/%%pagekey%%?p=" + currentViewState["version"], true);
 				req.onerror = function (e) {
 					console.error(req.statusText);
-					poll();
+					setTimeout(poll, 3000);
 				}
 				req.onload = function (e) {
 					if (req.readyState === 4) {
@@ -197,7 +197,7 @@
 						"posx": grabpt.x,
 						"posy": grabpt.y,
 						"rotation": 0.0,
-						"color": "#" + Math.floor(Math.random()*0xffffff).toString(16),
+						"color": "#" + toHexPad(Math.floor(Math.random()*0xffffff).toString(16), 6),
 						"label": "",
 						"size": 16,
 						"shape": 0
@@ -243,7 +243,6 @@
 						var yscale = ndelta.y / pdelta.y;
 						m["size"] = Math.min(256, Math.max(5.0, m["size"] * (xscale + yscale) / 2));
 					} else if (mode == "HUE") {
-						// There's some bug here, with vdelta and winding up with lots of NaNs.
 						var hdelta = newpoint.x - grabpt.x;
 						var vdelta = newpoint.y - grabpt.y;
 						var c = toHSV(fromHex(m["color"]));
@@ -251,7 +250,6 @@
 						c["v"] = Math.min(1, Math.max(0, c["v"] - vdelta / 255));
 						m["color"] = toHex(toRGB(c));
 					} else if (mode == "SATURATION") {
-						// There's some bug here, with vdelta and winding up with lots of NaNs.
 						var sdelta = newpoint.x - grabpt.x;
 						var vdelta = newpoint.y - grabpt.y;
 						var c = toHSV(fromHex(m["color"]));
@@ -287,15 +285,17 @@
 				var delta = max - min;
 				if (max != 0) {  // Not black.
 					s = delta / max;
-					if (r == max) {
-						h = (g - b) / delta;
-					} else if (g == max) {
-						h = 2 + (b - r) / delta;
-					} else if (b == max) {
-						h = 4 + (r - g) / delta;
-					}
-					if (h < 0) {
-						h += 6;
+					if (delta != 0) {
+						if (r == max) {
+							h = (g - b) / delta;
+						} else if (g == max) {
+							h = 2 + (b - r) / delta;
+						} else if (b == max) {
+							h = 4 + (r - g) / delta;
+						}
+						if (h < 0) {
+							h += 6;
+						}
 					}
 				}
 				return {
@@ -321,15 +321,16 @@
 
 			function toHex(rgbcolor) {
 				return "#"
-				 		+ toHexPad(Math.floor(rgbcolor["r"]*255).toString(16))
-						+ toHexPad(Math.floor(rgbcolor["g"]*255).toString(16))
-						+ toHexPad(Math.floor(rgbcolor["b"]*255).toString(16));
+				 		+ toHexPad(Math.floor(rgbcolor["r"]*255).toString(16), 2)
+						+ toHexPad(Math.floor(rgbcolor["g"]*255).toString(16), 2)
+						+ toHexPad(Math.floor(rgbcolor["b"]*255).toString(16), 2);
 			}
 
-			function toHexPad(str) {
-					if (str.length == 1) {
-						return "0" + str;
+			function toHexPad(str, l) {
+					while (str.length < l) {
+						str = "0" + str;
 					}
+					return str;
 			}
 
 			function fromHex(hexcolor) {

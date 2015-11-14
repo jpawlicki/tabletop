@@ -231,6 +231,7 @@ class StateServer {
 			exchange.getResponseHeaders().add("Content-Type", mime);
 			try (OutputStream o = exchange.getResponseBody()) {
 				o.write(resp);
+				o.flush();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
