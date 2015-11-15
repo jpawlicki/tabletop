@@ -118,6 +118,17 @@
 				ctx.fillStyle = marker["color"]
 				setMarkerPath(ctx, marker);
 				ctx.fill();
+				var rgb = fromHex(marker["color"]);
+				if (rgb.r + rgb.g + rgb.b > 1.5) {
+					ctx.strokeStyle = "#000000";
+					ctx.fillStyle = "#000000";
+				} else {
+					ctx.strokeStyle = "#ffffff";
+					ctx.fillStyle = "#ffffff";
+				}
+				ctx.stroke();
+				var t = ctx.measureText(marker["label"]);
+				ctx.fillText(marker["label"], marker["posx"] - t.width / 2, marker["posy"]);
 			}
 
 			function setMarkerPath(ctx, marker) {
@@ -159,8 +170,11 @@
 			}
 
 			var geometry = [
-				[{x: 0.0, y: 1.0}, {x: 1.0, y: -1.0},{x: 0.0, y: -0.5}, {x: -1.0, y: -1.0}], // Shape 0: Caret.
-				[{x: 0.0, y: 1.0}, {x: 0.8, y:  0.8},{x: 1.0, y: -1.0}, {x: -1.0, y: -1.0}, {x: -0.8, y: 0.8}] // Shape 1: Shogi.
+				[{x: 0.0, y: 1.0}, {x: 1.0, y: -1.0}, {x:  0.0, y: -0.5}, {x: -1.0, y: -1.0}], // Shape 0: Caret.
+				[{x: 0.0, y: 1.0}, {x: 0.8, y:  0.8}, {x:  1.0, y: -1.0}, {x: -1.0, y: -1.0}, {x: -0.8, y: 0.8}], // Shape 1: Shogi.
+				[{x: 1.0, y: 1.0}, {x: 1.0, y: -1.0}, {x: -1.0, y: -1.0}, {x: -1.0, y:  1.0}], // Shape 2: Square.
+				[{x: 1.0, y: 1.0}, {x: 0.0, y:  0.5}, {x: -1.0, y:  1.0}, {x: -0.5, y:  0.0}, {x: -1.0, y: -1.0}, {x: 0.0, y: -0.5}, {x: 1.0, y: -1.0}, {x: 0.5, y: 0.0}], // Shape 2: "X".
+				[{x: 1.0, y: 1.0}, rotate(1, 1, Math.PI/3), rotate(1, 1, 2*Math.PI/3), rotate(1, 1, Math.PI), rotate(1, 1, 4*Math.PI/3), rotate(1, 1, 5*Math.PI/3)] // Shape 3: Hexagon.
 			];
 
 			/************************************
@@ -189,7 +203,23 @@
 						}
 					}
 				}
-				if (getMode() == "DELETE" && selectedMarker != null) {
+				if (getMode() == "CLONE" && selectedMarker != null) {
+					var s = currentViewState["markers"][selectedMarker];
+					var name = Math.random().toString(36);
+					var m = {
+						"posx": s["posx"],
+						"posy": s["posy"],
+						"rotation": s["rotation"],
+						"color": s["color"],
+						"label": s["label"],
+						"size": s["size"],
+						"shape": s["shape"]
+					};
+					currentViewState["markers"][name] = m;
+					selectedMarker = name;
+				} else if (getMode() == "LABEL" && selectedMarker != null) {
+					currentViewState["markers"][selectedMarker]["label"] = document.getElementById("label").value;
+				} else if (getMode() == "DELETE" && selectedMarker != null) {
 					pushDeleteMarker(selectedMarker);
 					selectedMarker = null;
 				} else if (selectedMarker == null) {
@@ -221,7 +251,7 @@
 					var mode = getMode();
 					newpoint = eventToLoc(e);
 					var m = currentViewState["markers"][selectedMarker];
-					if (mode == "MOVE") {
+					if (mode == "MOVE" || mode == "CLONE") {
 						var x = m["posx"];
 						var y = m["posy"];
 						var pdelta = {x: x - grabpt.x, y: y - grabpt.y};
@@ -358,18 +388,25 @@
 			<canvas id="canv" width="800" height="800"/>
 		</div>
 		<div>
-			<label>Set background:
-			 	<input id="bgimage" type="text"/>
-				<input type="button" onclick="pushBgImage(document.getElementById('bgimage').value);" value="Commit"/>
-			</label>
-		</div>
-		<div>
 			<label><input name="mode" type="radio" value="MOVE" checked/>Move</label>
 			<label><input name="mode" type="radio" value="RESIZE"/>Resize</label>
 			<label><input name="mode" type="radio" value="HUE"/>Hue</label>
 			<label><input name="mode" type="radio" value="SATURATION"/>Saturation</label>
 			<label><input name="mode" type="radio" value="SHAPE"/>Shape</label>
 			<label><input name="mode" type="radio" value="DELETE"/>Delete</label>
+			<label><input name="mode" type="radio" value="LABEL"/>Label</label>
+			<label><input name="mode" type="radio" value="CLONE"/>Clone</label>
+		</div>
+		<div>
+			<label>Set label:
+			 	<input id="label" type="text"/>
+			</label>
+		</div>
+		<div>
+			<label>Set background:
+			 	<input id="bgimage" type="text"/>
+				<input type="button" onclick="pushBgImage(document.getElementById('bgimage').value);" value="Commit"/>
+			</label>
 		</div>
 		<script>
 			canv.onmousedown = mouseDown;
