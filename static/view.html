@@ -19,7 +19,6 @@
 				req.onload = function (e) {
 					if (req.readyState === 4) {
 						var rsp = req.responseText;
-						console.log(rsp);
 						updateState(JSON.parse(rsp));
 						poll();
 					}
@@ -98,6 +97,9 @@
 					var m = c["markers"];
 					for (var str in m) {
 						if (m.hasOwnProperty(str)) {
+							if (str == selectedMarker) {
+								continue;
+							}
 							var old = p[str];
 							if (old != null) {
 								m[str]["posx"] = n[str]["posx"] * stateInterpolation + old["posx"] * (1 - stateInterpolation);
@@ -223,6 +225,7 @@
 			 * INTERFACE
 			 ************************************/
 			var grabpt = {x: 0, y: 0}
+			var selectedMarkerInitialSize;
 			var selectedMarker = null;
 
 			function eventToLoc(e) {
@@ -262,7 +265,9 @@
 					selectedMarker = name;
 				} else if (getMode() == "LABEL" && selectedMarker != null) {
 					currentViewState["markers"][selectedMarker]["label"] = document.getElementById("label").value;
-					nextViewState["markers"][name] = JSON.parse(JSON.stringify(currentViewState["markers"][selectedMarker]));
+					nextViewState["markers"][selectedMarker] = JSON.parse(JSON.stringify(currentViewState["markers"][selectedMarker]));
+				} else if (getMode() == "RESIZE" && selectedMarker != null) {
+					selectedMarkerInitialSize = currentViewState["markers"][selectedMarker]["size"];
 				} else if (getMode() == "DELETE" && selectedMarker != null) {
 					pushDeleteMarker(selectedMarker);
 					selectedMarker = null;
@@ -282,6 +287,7 @@
 					selectedMarker = name;
 				}
 				paintCanv();
+				e.preventDefault();
 			}
 
 			function mouseUp(e) {
@@ -292,10 +298,12 @@
 			}
 
 			function mouseMotion(e) {
+				e.preventDefault();
 				if (selectedMarker != null) {
 					var mode = getMode();
 					newpoint = eventToLoc(e);
 					var m = currentViewState["markers"][selectedMarker];
+					var updateGrabPt = true;
 					if (mode == "MOVE" || mode == "CLONE") {
 						var x = m["posx"];
 						var y = m["posy"];
@@ -317,7 +325,11 @@
 						var ndelta = {x: x - newpoint.x, y: y - newpoint.y};
 						var xscale = ndelta.x / pdelta.x;
 						var yscale = ndelta.y / pdelta.y;
-						m["size"] = Math.min(256, Math.max(5.0, m["size"] * (xscale + yscale) / 2));
+						var res = Math.min(256, Math.max(5.0, selectedMarkerInitialSize * (xscale + yscale) / 2));
+						if (!isNaN(res)) {
+							m["size"] = res;
+						}
+						updateGrabPt = false;
 					} else if (mode == "HUE") {
 						var hdelta = newpoint.x - grabpt.x;
 						var vdelta = newpoint.y - grabpt.y;
@@ -340,12 +352,14 @@
 							sdelta = Math.floor(sdelta);
 						}
 						if (sdelta == 0) {
-							return; // We intentionally skip updating grabpt here.
+							updateGrabPt = false;
 						}
 						m["shape"] = (m["shape"] + sdelta + geometry.length) % geometry.length;
 					}
 					nextViewState["markers"][selectedMarker] = JSON.parse(JSON.stringify(m));
-					grabpt = newpoint;
+					if (updateGrabPt) {
+						grabpt = newpoint;
+					}
 					paintCanv();
 				}
 			}
@@ -475,8 +489,11 @@
 		</div>
 		<script>
 			canv.onmousedown = mouseDown;
+			canv.ontouchstart = mouseDown;
 			document.onmouseup = mouseUp;
+			document.ontouchend = mouseUp;
 			canv.onmousemove = mouseMotion;
+			canv.ontouchmove = mouseMotion;
 			paintCanv();
 		</script>
 	</body>
