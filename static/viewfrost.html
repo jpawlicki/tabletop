@@ -4,6 +4,7 @@
 			var pageKey = "%%pagekey%%";
 		</script>
 		<script type="application/javascript" src="/static/standard.js"></script>
+		<script type=""></script>
 		<style type="text/css">
 			body {
 				margin: 0;
@@ -22,6 +23,32 @@
 			}
 			#controls label {
 				display: block;
+			}
+			input[type=number] {
+				width: 4em;
+			}
+			button {
+				padding: 0;
+				font-size: 140%;
+			}
+			.attack {
+				background-color: #880000;
+				display: inline-block;
+			}
+			.defense {
+				background-color: #000088;
+				display: inline-block;
+			}
+			.mobility {
+				background-color: #008800;
+				display: inline-block;
+			}
+			.will {
+				background-color: #888800;
+				display: inline-block;
+			}
+			.fatigues {
+				display: inline-block;
 			}
 		</style>
 	</head>
@@ -58,5 +85,53 @@
 			canv.ontouchmove = mouseMotion;
 			paintCanv();
 		</script>
+		<div id="herotable">
+			<table>
+				<tr>
+					<td>
+						<input type="button" value="&#x2682;"><input type="text" value="Tea Iovis"/>
+						<div class="attack"><input type="button" value="&#x2694;"><input type="number" size="1"/>+<input type="number" size="2"></div>
+						<div class="defense"><input type="button" value="&#x2617;"><input type="number" size="1"/>+<input type="number" size="2"></div>
+						<div class="mobility"><input type="button" value="&#x1f463;"><input type="number" size="1"/>+<input type="number" size="2"></div>
+						<div class="will"><input type="button" value="&#x262f;"><input type="number" size="1"/>+<input type="number" size="2"></div>
+						<div class="fatigues">&#x262f;&#x1f463;</div>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<div class="ability">
+							<select>
+								<option></option>
+								<option>Overwatch</option>
+								<option></option>
+								<option></option>
+								<option></option>
+								<option></option>
+								<option></option>
+							</select>
+							<select>
+								<option></option>
+								<option>Overwatch</option>
+								<option></option>
+								<option></option>
+								<option></option>
+								<option></option>
+								<option></option>
+							</select>
+							<select>
+								<option>Fisticuffs</option>
+								<option>Bow</option>
+								<option>Sword</option>
+								<option>Stuff</option>
+								<option></option>
+								<option></option>
+								<option></option>
+							</select>
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>
+		<div ></div>
 	</body>
 </html>

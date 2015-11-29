@@ -175,6 +175,20 @@ class StateServer {
 						.build()).build());
 	}
 
+	private void updateCharacter(String path, JsonObject data) {
+		State s = getState(path);
+		states.put(path, new State.Builder(s)
+				.setVersion(s.version + 1)
+				.updateCharacter(new Character.Builder()
+						.setName(data.getString("name"))
+						.setStats(toIntArray(data.getJsonArray("stats")))
+						.setRolls(toIntArray(data.getJsonArray("rolls")))
+						.setFatigues(toIntArray(data.getJsonArray("fatigues")))
+						.setSkills(toStringArray(data.getJsonArray("skills")))
+						.setWeapon(data.getString("weapon"))
+						.build()).build());
+	}
+
 	private void deleteMarker(String path, JsonObject data) {
 		State s = getState(path);
 		states.put(path, new State.Builder(s).setVersion(s.version + 1).deleteMarker(data.getString("id")).build());
@@ -417,6 +431,102 @@ final class Marker {
 		}
 	}
 }
+
+/**
+final class Character {
+String Name name
+int[] Stats stats
+int[] Rolls rolls
+int[] Fatigues fatigues
+String[] Skills skills
+String Weapon weapon
+	
+String Name name
+int[] Stats stats
+int[] Rolls rolls
+int[] Fatigues fatigues
+String[] Skills skills
+String Weapon weapon
+
+String Name name
+int[] Stats stats
+int[] Rolls rolls
+int[] Fatigues fatigues
+String[] Skills skills
+String Weapon weapon
+
+	private Marker(int posx, int posy, int shape, String color, double size, double rotation, String label) {
+		this.posx = posx;
+		this.posy = posy;
+		this.shape = shape;
+		this.color = color;
+		this.size = size;
+		this.rotation = rotation;
+		this.label = label;
+	}
+
+	static class Builder {
+		private int posx;
+		private int posy;
+		private int shape;
+		private String color;
+		private double size;
+		private double rotation;
+		private String label;
+
+		public Builder() {
+		}
+
+		public Builder(Marker m) {
+			posx = m.posx;
+			posy = m.posy;
+			shape = m.shape;
+			color = m.color;
+			size = m.size;
+			rotation = m.rotation;
+			label = m.label;
+		}
+
+		public Marker build() {
+			return new Marker(posx, posy, shape, color, size, rotation, label);
+		}
+
+		public Builder setPosx(int posx) {
+			this.posx = posx;
+			return this;
+		}
+
+		public Builder setPosy(int posy) {
+			this.posy = posy;
+			return this;
+		}
+
+		public Builder setShape(int shape) {
+			this.shape = shape;
+			return this;
+		}
+
+		public Builder setColor(String color) {
+			this.color = color;
+			return this;
+		}
+
+		public Builder setSize(double size) {
+			this.size = size;
+			return this;
+		}
+
+		public Builder setRotation(double rotation) {
+			this.rotation = rotation;
+			return this;
+		}
+
+		public Builder setLabel(String label) {
+			this.label = label;
+			return this;
+		}
+	}
+}*/
 
 final class SimpleFile {
 	public final String mimeType;
