@@ -80,7 +80,7 @@ function updateState(nu) {
 	interpolate();
 }
 
-func onUpdateState() {
+function onUpdateState() {
 	// Do nothing. Other pages may override this function to hook updates.
 }
 
