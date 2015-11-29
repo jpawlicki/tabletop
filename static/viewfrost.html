@@ -1,0 +1,62 @@
+<html>
+	<head>
+		<script type="application/javascript">
+			var pageKey = "%%pagekey%%";
+		</script>
+		<script type="application/javascript" src="/static/standard.js"></script>
+		<style type="text/css">
+			body {
+				margin: 0;
+				font-family: sans-serif;
+				color: #ffffff;
+				background-color: #202020;
+			}
+			#canvdiv {
+				text-align:center;
+				max-width: 100%;
+				max-height: 90%;
+				overflow: auto;
+			}
+			#controls {
+				float: left;
+			}
+			#controls label {
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="controls">
+			MODE:
+			<label><input name="mode" type="radio" value="MOVE" checked/>Move</label>
+			<label><input name="mode" type="radio" value="RESIZE"/>Resize</label>
+			<label><input name="mode" type="radio" value="HUE"/>Hue</label>
+			<label><input name="mode" type="radio" value="SATURATION"/>Saturation</label>
+			<label><input name="mode" type="radio" value="SHAPE"/>Shape</label>
+			<label><input name="mode" type="radio" value="DELETE"/>Delete</label>
+			<label><input name="mode" type="radio" value="LABEL"/>Label</label>
+			<label><input name="mode" type="radio" value="CLONE"/>Clone</label>
+		</div>
+		<div id="canvdiv">
+			<canvas id="canv" width="512" height="512"/>
+		</div>
+		<div>
+			<label>Label:
+			 	<input id="label" placeholder="Any Text" size="10" type="text"/>
+			</label>
+			<label>Background:
+			 	<input id="bgimage" placeholder="http://www.example.com/image.png" type="text"/>
+			</label>
+			<input type="button" onclick="pushBgImage(document.getElementById('bgimage').value);" value="Commit Background"/>
+		</div>
+		<script>
+			canv.onmousedown = mouseDown;
+			canv.ontouchstart = mouseDown;
+			document.onmouseup = mouseUp;
+			document.ontouchend = mouseUp;
+			canv.onmousemove = mouseMotion;
+			canv.ontouchmove = mouseMotion;
+			paintCanv();
+		</script>
+	</body>
+</html>
