@@ -116,10 +116,13 @@ class StateServer {
 	}
 
 	private void handleView(HttpExchange exchange) {
-		String path = exchange.getRequestURI().getPath().substring("/view/".length());
-		if (keyPattern.matcher(path).matches()) {
-			String viewPage = new String(staticFiles.get("view.html").content);
-			serve200(exchange, viewPage.replace("%%pagekey%%", path).getBytes(), "text/html");
+		String request = exchange.getRequestURI().getPath().substring(1);
+		String file = request.substring(0, request.lastIndexOf("/"));
+		String key = request.substring(file.length() + 1);
+		file += ".html";
+		if (keyPattern.matcher(key).matches() && !file.contains("/")) {
+			String viewPage = new String(staticFiles.get(file).content);
+			serve200(exchange, viewPage.replace("%%pagekey%%", key).getBytes(), "text/html");
 		} else {
 			serve404(exchange);
 		}
