@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import com.sun.net.httpserver.HttpExchange;
@@ -109,7 +111,7 @@ class StateServer {
 		String path = exchange.getRequestURI().getPath().substring("/static/".length());
 		SimpleFile file = staticFiles.get(path);
 		if (file != null) {
-			serve200(exchange, file.content, file.mimeType);	
+			serve200(exchange, file.content, file.mimeType);
 		} else {
 			serve404(exchange);
 		}
@@ -175,11 +177,11 @@ class StateServer {
 						.build()).build());
 	}
 
-	private void updateCharacter(String path, JsonObject data) {
+	private void updateCharacter(String path, int i, JsonObject data) {
 		State s = getState(path);
 		states.put(path, new State.Builder(s)
 				.setVersion(s.version + 1)
-				.updateCharacter(new Character.Builder()
+				.updateCharacter(i, new Character.Builder()
 						.setName(data.getString("name"))
 						.setStats(toIntArray(data.getJsonArray("stats")))
 						.setRolls(toIntArray(data.getJsonArray("rolls")))
@@ -273,15 +275,33 @@ class StateServer {
 		}
 		return s;
 	}
+
+	private int[] toIntArray(JsonArray a) {
+		int[] s = new int[a.size()];
+		for (int i = 0; i < s.length; i++) {
+			s[i] = a.getInt(i);
+		}
+		return s;
+	}
+
+	private String[] toStringArray(JsonArray a) {
+		String[] s = new String[a.size()];
+		for (int i = 0; i < s.length; i++) {
+			s[i] = a.getString(i);
+		}
+		return s;
+	}
 }
 
 final class State {
 	public final int version;
 	public final String bgimage;
 	public final HashMap<String, Marker> markers;
+	public final ArrayList<Character> characters;
 
 	public byte[] getBytes() {
 		JsonObjectBuilder markersBuilder = Json.createObjectBuilder();
+		JsonArrayBuilder charactersBuilder = Json.createArrayBuilder();
 		for (Map.Entry<String, Marker> e : markers.entrySet()) {
 			Marker m = e.getValue();
 			markersBuilder.add(e.getKey(), Json.createObjectBuilder()
@@ -294,17 +314,50 @@ final class State {
 					.add("label", m.label)
 					.build());
 		}
+		for (Character c : characters) {
+			JsonArrayBuilder statBuilder = Json.createArrayBuilder();
+			for (int v : c.stats) {
+				statBuilder.add(v);
+			}
+			JsonArrayBuilder rollBuilder = Json.createArrayBuilder();
+			for (int v : c.rolls) {
+				rollBuilder.add(v);
+			}
+			JsonArrayBuilder fatigueBuilder = Json.createArrayBuilder();
+			for (int v : c.fatigues) {
+				fatigueBuilder.add(v);
+			}
+			JsonArrayBuilder skillBuilder = Json.createArrayBuilder();
+			for (String v : c.skills) {
+				skillBuilder.add(v);
+			}
+			charactersBuilder.add(Json.createObjectBuilder()
+					.add("name", c.name)
+					.add("weapon", c.weapon)
+					.add("stats", statBuilder.build())
+					.add("rolls", rollBuilder.build())
+					.add("fatigues", fatigueBuilder.build())
+					.add("skills", skillBuilder.build())
+					.build());
+		}
+
 		return Json.createObjectBuilder()
 				.add("version", version)
 				.add("markers", markersBuilder.build())
+				.add("characters", charactersBuilder.build())
 				.add("bgimage", bgimage)
 				.build().toString().getBytes();
 	}
 
-	private State(int version, String bgimage, HashMap<String, Marker> markers) {
+	private State(
+			int version,
+			String bgimage,
+			HashMap<String, Marker> markers,
+			ArrayList<Character> characters) {
 		this.version = version;
 		this.bgimage = bgimage;
 		this.markers = markers;
+		this.characters = characters;
 	}
 
 	// A mutable builder for an immutable State.
@@ -312,6 +365,7 @@ final class State {
 		private int version = 1;
 		private String bgimage = "";
 		private HashMap<String, Marker> markers = new HashMap<>();
+		private ArrayList<Character> characters = new ArrayList<>();
 
 		public Builder() {
 		}
@@ -322,10 +376,13 @@ final class State {
 			for (Map.Entry<String, Marker> e : s.markers.entrySet()) {
 				markers.put(e.getKey(), e.getValue());
 			}
+			for (Character c : s.characters) {
+				characters.add(c);
+			}
 		}
 
 		public State build() {
-			return new State(version, bgimage, markers);
+			return new State(version, bgimage, markers, characters);
 		}
 
 		public Builder setVersion(int version) {
@@ -340,6 +397,15 @@ final class State {
 
 		public Builder updateMarker(String id, Marker m) {
 			markers.put(id, m);
+			return this;
+		}
+
+		public Builder updateCharacter(int i, Character c) {
+			if (i >= characters.size()) {
+				characters.add(c);
+			} else {
+				characters.set(i, c);
+			}
 			return this;
 		}
 
@@ -432,101 +498,82 @@ final class Marker {
 	}
 }
 
-/**
 final class Character {
-String Name name
-int[] Stats stats
-int[] Rolls rolls
-int[] Fatigues fatigues
-String[] Skills skills
-String Weapon weapon
-	
-String Name name
-int[] Stats stats
-int[] Rolls rolls
-int[] Fatigues fatigues
-String[] Skills skills
-String Weapon weapon
+	public final String name;
+	public final int[] stats;
+	public final int[] rolls;
+	public final int[] fatigues;
+	public final String[] skills;
+	public final String weapon;
 
-String Name name
-int[] Stats stats
-int[] Rolls rolls
-int[] Fatigues fatigues
-String[] Skills skills
-String Weapon weapon
-
-	private Marker(int posx, int posy, int shape, String color, double size, double rotation, String label) {
-		this.posx = posx;
-		this.posy = posy;
-		this.shape = shape;
-		this.color = color;
-		this.size = size;
-		this.rotation = rotation;
-		this.label = label;
+	private Character(
+			String name,
+			int[] stats,
+			int[] rolls,
+			int[] fatigues,
+			String[] skills,
+			String weapon) {
+		this.name = name;
+		this.stats = stats;
+		this.rolls = rolls;
+		this.fatigues = fatigues;
+		this.skills = skills;
+		this.weapon = weapon;
 	}
 
-	static class Builder {
-		private int posx;
-		private int posy;
-		private int shape;
-		private String color;
-		private double size;
-		private double rotation;
-		private String label;
+	public static class Builder {
+		private String name;
+		private int[] stats;
+		private int[] rolls;
+		private int[] fatigues;
+		private String[] skills;
+		private String weapon;
 
 		public Builder() {
 		}
-
-		public Builder(Marker m) {
-			posx = m.posx;
-			posy = m.posy;
-			shape = m.shape;
-			color = m.color;
-			size = m.size;
-			rotation = m.rotation;
-			label = m.label;
+		public Builder(Builder o) {
+			this.name = name;
+			this.stats = stats;
+			this.rolls = rolls;
+			this.fatigues = fatigues;
+			this.skills = skills;
+			this.weapon = weapon;
 		}
-
-		public Marker build() {
-			return new Marker(posx, posy, shape, color, size, rotation, label);
-		}
-
-		public Builder setPosx(int posx) {
-			this.posx = posx;
+		public Builder setName(String name) {
+			this.name = name;
 			return this;
 		}
-
-		public Builder setPosy(int posy) {
-			this.posy = posy;
+		public Builder setStats(int[] stats) {
+			this.stats = stats;
 			return this;
 		}
-
-		public Builder setShape(int shape) {
-			this.shape = shape;
+		public Builder setRolls(int[] rolls) {
+			this.rolls = rolls;
 			return this;
 		}
-
-		public Builder setColor(String color) {
-			this.color = color;
+		public Builder setFatigues(int[] fatigues) {
+			this.fatigues = fatigues;
 			return this;
 		}
-
-		public Builder setSize(double size) {
-			this.size = size;
+		public Builder setSkills(String[] skills) {
+			this.skills = skills;
 			return this;
 		}
-
-		public Builder setRotation(double rotation) {
-			this.rotation = rotation;
+		public Builder setWeapon(String weapon) {
+			this.weapon = weapon;
 			return this;
 		}
-
-		public Builder setLabel(String label) {
-			this.label = label;
-			return this;
+		public Character build() {
+			return new Character(
+					name,
+					stats,
+					rolls,
+					fatigues,
+					skills,
+					weapon);
 		}
 	}
-}*/
+}
 
 final class SimpleFile {
 	public final String mimeType;
