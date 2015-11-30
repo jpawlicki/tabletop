@@ -187,26 +187,26 @@
 					c["rolls"][i] = Math.floor(Math.random() * 6 + 1);
 				}
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function fatigue(n, i) {
 				var c = nextViewState["characters"][n];
 				c["fatigues"].push(i);
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function cancelFatigue(n, i) {
 				nextViewState["characters"][n]["fatigues"].splice(i, 1);
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeName(n) {
 				nextViewState["characters"][n]["name"] = this.value;
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeStat(n, i) {
@@ -214,13 +214,13 @@
 				var p = calcFatigue(c)["p"];
 				c["stats"][i] = parseInt(this.value, 10) - p[i];
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeSpirit(n, i) {
 				nextViewState["characters"][n]["spirit"] = parseInt(this.value, 10);
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeRoll(n, i) {
@@ -228,19 +228,19 @@
 				var b = calcFatigue(c)["b"];
 				c["rolls"][i] = parseInt(this.value, 10) - b[i];
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeSkill(n, i) {
 				nextViewState["characters"][n]["skills"][i] = this.value;
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function changeWeapon(n) {
 				nextViewState["characters"][n]["weapon"] = this.value;
 				pushCharacter(n);
-				onStateUpdate();
+				onUpdateState();
 			}
 
 			function calcFatigue(c) {
