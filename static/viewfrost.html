@@ -4,11 +4,266 @@
 			var pageKey = "%%pagekey%%";
 		</script>
 		<script type="application/javascript" src="/static/standard.js"></script>
-		<script type=""></script>
+		<script type="application/javascript">
+			var skills = [
+				"",
+				"Bull Rush",
+				"Charge",
+				"Cleave",
+				"Counterstrike",
+				"Defend",
+				"Disarm",
+				"Divert",
+				"Dodge",
+				"Esprit de Corps",
+				"First Aid",
+				"Feint",
+				"Intimidate",
+				"Opportunity",
+				"Overrun",
+				"Pile On",
+				"Prayer",
+				"Rapid Reload",
+				"Retreat",
+				"Sabotage",
+				"Shove",
+				"Sprint",
+				"Strike",
+				"Tackle",
+				"Trip"];
+
+			var weapons = [
+				"Axe",
+				"Bow",
+				"Dagger",
+				"Fisticuffs",
+				"Spear",
+				"Sword"];
+
+			var styles = [
+				"attack",
+				"defense",
+				"mobility",
+				"will"];
+
+			var icons = [
+				"\u2694",
+				"\u2617",
+				"\u2650",
+				"\u262f"];
+
+			function onUpdateState() {
+				var characters = nextViewState["characters"];
+				if (characters == null) {
+					return;
+				}
+				var l = document.createElement("div");
+				for (var i = 0; i < characters.length; i++) {
+					var d = document.createElement("div");
+					var c = characters[i];
+					var fat = calcFatigue(c);
+					var rb = document.createElement("input");
+					rb.type = "button";
+					rb.value = "\u2685";
+					rb.addEventListener("click", reroll.bind(undefined, i), false);
+					d.appendChild(rb);
+					var name = document.createElement("input");
+					name.type = "text";
+					name.value = c["name"];
+					name.addEventListener("change", changeName.bind(name, i), false);
+					d.appendChild(name);
+					for (var j = 0; j < 4; j++) {
+						var div = document.createElement("div");
+						div.className = styles[j];
+						var e = document.createElement("input");
+						e.type = "button";
+						e.value = icons[j];
+						e.addEventListener("click", fatigue.bind(undefined, i, j), false);
+						div.appendChild(e);
+						e = document.createElement("input");
+						e.type = "number";
+						e.value = c["stats"][j] + fat["p"][j];
+						e.addEventListener("change", changeStat.bind(e, i, j), false);
+						div.appendChild(e);
+						div.appendChild(document.createTextNode("+"));
+						e = document.createElement("input");
+						e.type = "number";
+						e.value = c["rolls"][j] + fat["b"][j];
+						e.addEventListener("change", changeRoll.bind(e, i, j), false);
+						div.appendChild(e);
+						div.appendChild(document.createTextNode("=" + (c["rolls"][j] + fat["b"][j] + c["stats"][j] + fat["p"][j])));
+						d.appendChild(div);
+					}
+					e = document.createElement("div");
+					e.className = "spirit";
+					ec = document.createElement("input");
+					ec.type = "number";
+					ec.value = c["spirit"];
+					ec.addEventListener("change", changeSpirit.bind(ec, i), false);
+					e.appendChild(ec);
+					d.appendChild(e);
+					var e = document.createElement("div");
+					for (var j = 0; j < c["fatigues"].length; j++) {
+						var t = document.createElement("span");
+						t.appendChild(document.createTextNode(icons[c["fatigues"][j]]));
+						t.style.cursor = "pointer";
+						t.addEventListener("click", cancelFatigue.bind(undefined, i, j), false);
+						e.appendChild(t);
+					}
+					d.appendChild(e);
+					for (var j = 0; j < 2; j++) {
+						var e = document.createElement("select");
+						e.addEventListener("change", changeSkill.bind(e, i, j), false);
+						for (var k = 0; k < skills.length; k++) {
+							var o = document.createElement("option");
+							o.appendChild(document.createTextNode(skills[k]));
+							if (skills[k] == c.skills[j]) {
+								o.selected = true;
+							}
+							e.appendChild(o);
+						}
+						d.appendChild(e);
+					}
+					e = document.createElement("select");
+					e.addEventListener("change", changeWeapon.bind(e, i), false);
+					for (var k = 0; k < weapons.length; k++) {
+						var o = document.createElement("option");
+						o.appendChild(document.createTextNode(weapons[k]));
+						if (weapons[k] == c.weapon) {
+							o.selected = true;
+						}
+						e.appendChild(o);
+					}
+					d.appendChild(e);
+					l.appendChild(d);
+				}
+				var ht = document.getElementById("herotable");
+				while (ht.lastChild) {
+					ht.removeChild(ht.lastChild);
+				}
+				ht.appendChild(l);
+			}
+
+			function newCharacter() {
+				var v = nextViewState["characters"]
+				if (v == null) {
+					v = [];
+					nextViewState["characters"] = v;
+				}
+				v.push({
+						"name": "",
+						"stats": [0, 0, 0, 0],
+						"rolls": [0, 0, 0, 0],
+						"fatigues": [],
+						"skills": ["", ""],
+						"weapon": weapons[0],
+						"spirit": 0});
+				pushCharacter(nextViewState["characters"].length - 1);
+			}
+
+			function pushCharacter(id) {
+				var c = nextViewState["characters"][id];
+				push({
+					"type": "cpush",
+					"id": id,
+					"name": c["name"],
+					"stats": c["stats"],
+					"rolls": c["rolls"],
+					"fatigues": c["fatigues"],
+					"skills": c["skills"],
+					"weapon": c["weapon"],
+					"spirit": c["spirit"]});
+			}
+
+			function reroll(n) {
+				var c = nextViewState["characters"][n];
+				var p = calcFatigue(c)["p"];
+				for (var i = 0; i < p.length; i++) {
+					c["stats"][i] += p[i];
+				}
+				c["fatigues"] = [];
+				c["skills"] = ["", ""];
+				for (var i = 0; i < c["rolls"].length; i++) {
+					c["rolls"][i] = Math.floor(Math.random() * 6 + 1);
+				}
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function fatigue(n, i) {
+				var c = nextViewState["characters"][n];
+				c["fatigues"].push(i);
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function cancelFatigue(n, i) {
+				nextViewState["characters"][n]["fatigues"].splice(i, 1);
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeName(n) {
+				nextViewState["characters"][n]["name"] = this.value;
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeStat(n, i) {
+				var c = nextViewState["characters"][n];
+				var p = calcFatigue(c)["p"];
+				c["stats"][i] = parseInt(this.value, 10) - p[i];
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeSpirit(n, i) {
+				nextViewState["characters"][n]["spirit"] = parseInt(this.value, 10);
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeRoll(n, i) {
+				var c = nextViewState["characters"][n];
+				var b = calcFatigue(c)["b"];
+				c["rolls"][i] = parseInt(this.value, 10) - b[i];
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeSkill(n, i) {
+				nextViewState["characters"][n]["skills"][i] = this.value;
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function changeWeapon(n) {
+				nextViewState["characters"][n]["weapon"] = this.value;
+				pushCharacter(n);
+				onStateUpdate();
+			}
+
+			function calcFatigue(c) {
+				var p = [0, 0, 0, 0];
+				var b = [0, 0, 0, 0];
+				var val = -1;
+				for (var i = 0; i < c["fatigues"].length; i++) {
+					var f = c["fatigues"][i];
+					b[f] += c["stats"][f] + p[f];
+					p[f] += val;
+					val--;
+				}
+				return {"p": p, "b": b};
+			}
+		</script>
 		<style type="text/css">
+			@font-face {
+				font-family: 'DejaVu';
+				src: url('/static/DejaVuSans.ttf') format('truetype');
+			}
 			body {
 				margin: 0;
-				font-family: sans-serif;
+				font-family: 'DejaVu', sans-serif;
 				color: #ffffff;
 				background-color: #202020;
 			}
@@ -25,30 +280,55 @@
 				display: block;
 			}
 			input[type=number] {
-				width: 4em;
+				width: 3em;
 			}
-			button {
+			#herotable input[type=button] {
 				padding: 0;
-				font-size: 140%;
+			}
+			#herotable > div > div:nth-child(odd) {
+				background-color: #000000;
+			}
+			#herotable > div > div:nth-child(even) {
+				background-color: #404040;
+			}
+			#herotable > div > div {
+				margin-bottom: 0.5em;
+				padding-bottom: 0.25em;
+				text-align: center;
 			}
 			.attack {
 				background-color: #880000;
+				border: 2px solid #ff0000;
 				display: inline-block;
+				margin-left: 0.5em;
 			}
 			.defense {
 				background-color: #000088;
+				border: 2px solid #0000ff;
 				display: inline-block;
+				margin-left: 0.5em;
 			}
 			.mobility {
 				background-color: #008800;
+				border: 2px solid #00ff00;
 				display: inline-block;
+				margin-left: 0.5em;
 			}
 			.will {
 				background-color: #888800;
+				border: 2px solid #ffff00;
 				display: inline-block;
+				margin-left: 0.5em;
+			}
+			.spirit {
+				background-color: #888888;
+				border: 2px solid #ffffff;
+				display: inline-block;
+				margin-left: 0.5em;
 			}
 			.fatigues {
 				display: inline-block;
+				margin: auto;
 			}
 		</style>
 	</head>
@@ -85,53 +365,9 @@
 			canv.ontouchmove = mouseMotion;
 			paintCanv();
 		</script>
-		<div id="herotable">
-			<table>
-				<tr>
-					<td>
-						<input type="button" value="&#x2682;"><input type="text" value="Tea Iovis"/>
-						<div class="attack"><input type="button" value="&#x2694;"><input type="number" size="1"/>+<input type="number" size="2"></div>
-						<div class="defense"><input type="button" value="&#x2617;"><input type="number" size="1"/>+<input type="number" size="2"></div>
-						<div class="mobility"><input type="button" value="&#x1f463;"><input type="number" size="1"/>+<input type="number" size="2"></div>
-						<div class="will"><input type="button" value="&#x262f;"><input type="number" size="1"/>+<input type="number" size="2"></div>
-						<div class="fatigues">&#x262f;&#x1f463;</div>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<div class="ability">
-							<select>
-								<option></option>
-								<option>Overwatch</option>
-								<option></option>
-								<option></option>
-								<option></option>
-								<option></option>
-								<option></option>
-							</select>
-							<select>
-								<option></option>
-								<option>Overwatch</option>
-								<option></option>
-								<option></option>
-								<option></option>
-								<option></option>
-								<option></option>
-							</select>
-							<select>
-								<option>Fisticuffs</option>
-								<option>Bow</option>
-								<option>Sword</option>
-								<option>Stuff</option>
-								<option></option>
-								<option></option>
-								<option></option>
-							</select>
-						</div>
-					</td>
-				</tr>
-			</table>
+		<div id="herotable"></div>
+		<div>
+			<input type="button" value="New Character" onclick="newCharacter();"/>
 		</div>
-		<div ></div>
 	</body>
 </html>

@@ -38,7 +38,7 @@ echo -e "\t\tpublic Builder() {}"
 echo -e "\t\tpublic Builder(Builder o) {"
 for i in ${!elements[@]}; do
 	a=(${elements[$i]});
-	echo -e "\t\t\tthis.${a[1]} = ${a[1]};";
+	echo -e "\t\t\tthis.${a[1]} = o.${a[1]};";
 done;
 echo -e "\t\t}"
 for i in ${!elements[@]}; do

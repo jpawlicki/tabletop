@@ -24,9 +24,10 @@ function poll() {
 }
 
 function push(obj) {
+	var str = JSON.stringify(obj);
 	var req = new XMLHttpRequest();
 	req.open("post", "/update/" + pageKey, true);
-	req.send(JSON.stringify(obj));
+	req.send(str);
 }
 
 function pushBgImage(img) {

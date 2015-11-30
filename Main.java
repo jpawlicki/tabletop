@@ -85,7 +85,11 @@ class StateServer {
 		s.createContext("/update", new HttpHandler() {
 			@Override
 			public void handle(HttpExchange exchange) {
-				handleUpdate(exchange);
+				try {
+					handleUpdate(exchange);
+				} catch (Exception e) {
+					e.printStackTrace(); // Otherwise the Executor will silently eat the exception.
+				}
 		 	}
 		});
 		for (File f : new File(staticFileDir).listFiles()) {
@@ -139,6 +143,7 @@ class StateServer {
 		if (keyPattern.matcher(path).matches()) {
 			// Handle state update.
 			JsonObject data = Json.createReader(exchange.getRequestBody()).readObject();
+			System.out.println(data.toString());
 			switch (data.getString("type")) {
 				case "mpush":
 					updateMarker(path, data);
@@ -149,14 +154,20 @@ class StateServer {
 				case "bgimage":
 					setBgImage(path, data);
 					break;
+				case "cpush":
+					updateCharacter(path, data);
+					break;
 			}
 			serve200(exchange, "200 OK".getBytes(), "text/plain");
 			// Notify listeners.
 			byte[] b = states.get(path).getBytes();
-			for (HttpExchange e : clients.get(path)) {
-				serve200(e, b, "application/json");
+			List<HttpExchange> clientList = clients.get(path);
+			if (clientList != null) {
+				for (HttpExchange e : clientList) {
+					serve200(e, b, "application/json");
+				}
+				clients.remove(path);
 			}
-			clients.remove(path);
 		} else {
 			serve404(exchange);
 		}
@@ -177,17 +188,18 @@ class StateServer {
 						.build()).build());
 	}
 
-	private void updateCharacter(String path, int i, JsonObject data) {
+	private void updateCharacter(String path, JsonObject data) {
 		State s = getState(path);
 		states.put(path, new State.Builder(s)
 				.setVersion(s.version + 1)
-				.updateCharacter(i, new Character.Builder()
+				.updateCharacter(data.getInt("id"), new Character.Builder()
 						.setName(data.getString("name"))
 						.setStats(toIntArray(data.getJsonArray("stats")))
 						.setRolls(toIntArray(data.getJsonArray("rolls")))
 						.setFatigues(toIntArray(data.getJsonArray("fatigues")))
 						.setSkills(toStringArray(data.getJsonArray("skills")))
 						.setWeapon(data.getString("weapon"))
+						.setSpirit(data.getInt("spirit"))
 						.build()).build());
 	}
 
@@ -338,6 +350,7 @@ final class State {
 					.add("rolls", rollBuilder.build())
 					.add("fatigues", fatigueBuilder.build())
 					.add("skills", skillBuilder.build())
+					.add("spirit", c.spirit)
 					.build());
 		}
 
@@ -505,6 +518,7 @@ final class Character {
 	public final int[] fatigues;
 	public final String[] skills;
 	public final String weapon;
+	public final int spirit;
 
 	private Character(
 			String name,
@@ -512,13 +526,15 @@ final class Character {
 			int[] rolls,
 			int[] fatigues,
 			String[] skills,
-			String weapon) {
+			String weapon,
+			int spirit) {
 		this.name = name;
 		this.stats = stats;
 		this.rolls = rolls;
 		this.fatigues = fatigues;
 		this.skills = skills;
 		this.weapon = weapon;
+		this.spirit = spirit;
 	}
 
 	public static class Builder {
@@ -528,16 +544,18 @@ final class Character {
 		private int[] fatigues;
 		private String[] skills;
 		private String weapon;
+		private int spirit;
 
 		public Builder() {
 		}
 		public Builder(Builder o) {
-			this.name = name;
-			this.stats = stats;
-			this.rolls = rolls;
-			this.fatigues = fatigues;
-			this.skills = skills;
-			this.weapon = weapon;
+			this.name = o.name;
+			this.stats = o.stats;
+			this.rolls = o.rolls;
+			this.fatigues = o.fatigues;
+			this.skills = o.skills;
+			this.weapon = o.weapon;
+			this.spirit = o.spirit;
 		}
 		public Builder setName(String name) {
 			this.name = name;
@@ -563,6 +581,10 @@ final class Character {
 			this.weapon = weapon;
 			return this;
 		}
+		public Builder setSpirit(int spirit) {
+			this.spirit = spirit;
+			return this;
+		}
 		public Character build() {
 			return new Character(
 					name,
@@ -570,7 +592,8 @@ final class Character {
 					rolls,
 					fatigues,
 					skills,
-					weapon);
+					weapon,
+					spirit);
 		}
 	}
 }
