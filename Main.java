@@ -198,7 +198,9 @@ class StateServer {
 						.setRolls(toIntArray(data.getJsonArray("rolls")))
 						.setFatigues(toIntArray(data.getJsonArray("fatigues")))
 						.setSkills(toStringArray(data.getJsonArray("skills")))
+						.setLegalSkills(toStringArray(data.getJsonArray("legalskills")))
 						.setWeapon(data.getString("weapon"))
+						.setLegalWeapons(toStringArray(data.getJsonArray("legalweapons")))
 						.setSpirit(data.getInt("spirit"))
 						.build()).build());
 	}
@@ -343,6 +345,14 @@ final class State {
 			for (String v : c.skills) {
 				skillBuilder.add(v);
 			}
+			JsonArrayBuilder legalSkillBuilder = Json.createArrayBuilder();
+			for (String v : c.legalSkills) {
+				legalSkillBuilder.add(v);
+			}
+			JsonArrayBuilder legalWeaponsBuilder = Json.createArrayBuilder();
+			for (String v : c.legalWeapons) {
+				legalWeaponsBuilder.add(v);
+			}
 			charactersBuilder.add(Json.createObjectBuilder()
 					.add("name", c.name)
 					.add("weapon", c.weapon)
@@ -350,6 +360,8 @@ final class State {
 					.add("rolls", rollBuilder.build())
 					.add("fatigues", fatigueBuilder.build())
 					.add("skills", skillBuilder.build())
+					.add("legalskills", legalSkillBuilder.build())
+					.add("legalweapons", legalWeaponsBuilder.build())
 					.add("spirit", c.spirit)
 					.build());
 		}
@@ -517,6 +529,8 @@ final class Character {
 	public final int[] rolls;
 	public final int[] fatigues;
 	public final String[] skills;
+	public final String[] legalSkills;
+	public final String[] legalWeapons;
 	public final String weapon;
 	public final int spirit;
 
@@ -527,6 +541,8 @@ final class Character {
 			int[] fatigues,
 			String[] skills,
 			String weapon,
+			String[] legalSkills,
+			String[] legalWeapons,
 			int spirit) {
 		this.name = name;
 		this.stats = stats;
@@ -534,6 +550,8 @@ final class Character {
 		this.fatigues = fatigues;
 		this.skills = skills;
 		this.weapon = weapon;
+		this.legalSkills = legalSkills;
+		this.legalWeapons = legalWeapons;
 		this.spirit = spirit;
 	}
 
@@ -544,6 +562,8 @@ final class Character {
 		private int[] fatigues;
 		private String[] skills;
 		private String weapon;
+		private String[] legalSkills;
+		private String[] legalWeapons;
 		private int spirit;
 
 		public Builder() {
@@ -555,6 +575,8 @@ final class Character {
 			this.fatigues = o.fatigues;
 			this.skills = o.skills;
 			this.weapon = o.weapon;
+			this.legalSkills = o.legalSkills;
+			this.legalWeapons = o.legalWeapons;
 			this.spirit = o.spirit;
 		}
 		public Builder setName(String name) {
@@ -585,6 +607,14 @@ final class Character {
 			this.spirit = spirit;
 			return this;
 		}
+		public Builder setLegalSkills(String[] legalSkills) {
+			this.legalSkills = legalSkills;
+			return this;
+		}
+		public Builder setLegalWeapons(String[] legalWeapons) {
+			this.legalWeapons = legalWeapons;
+			return this;
+		}
 		public Character build() {
 			return new Character(
 					name,
@@ -593,6 +623,8 @@ final class Character {
 					fatigues,
 					skills,
 					weapon,
+					legalSkills,
+					legalWeapons,
 					spirit);
 		}
 	}

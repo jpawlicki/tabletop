@@ -102,6 +102,16 @@
 						e.appendChild(o);
 					}
 					d.appendChild(e);
+					e = document.createElement("input");
+					e.type = "text";
+					e.value = c["legalskills"].join(",");
+					e.addEventListener("change", changeLegalSkills.bind(e, i), false);
+					d.appendChild(e);
+					e = document.createElement("input");
+					e.type = "text";
+					e.value = c["legalweapons"].join(",");
+					e.addEventListener("change", changeLegalWeapons.bind(e, i), false);
+					d.appendChild(e);
 					l.appendChild(d);
 				}
 				var ht = document.getElementById("herotable");
@@ -140,9 +150,9 @@
 					"rolls": c["rolls"],
 					"fatigues": c["fatigues"],
 					"skills": c["skills"],
-					"weapon": c["weapon"],
 					"legalskills": c["legalskills"],
 					"legalweapons": c["legalweapons"],
+					"weapon": c["weapon"],
 					"spirit": c["spirit"]});
 			}
 
@@ -210,6 +220,18 @@
 
 			function changeWeapon(n) {
 				nextViewState["characters"][n]["weapon"] = this.value;
+				pushCharacter(n);
+				onUpdateState();
+			}
+
+			function changeLegalSkills(n) {
+				nextViewState["characters"][n]["legalskills"] = this.value.split(",");
+				pushCharacter(n);
+				onUpdateState();
+			}
+
+			function changeLegalWeapons(n) {
+				nextViewState["characters"][n]["legalweapons"] = this.value.split(",");
 				pushCharacter(n);
 				onUpdateState();
 			}
